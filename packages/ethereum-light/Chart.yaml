@@ -1,0 +1,6 @@
+apiVersion: v2
+name: ethereum-light
+description: Mainnet Parity Etheruem Light Client
+type: application
+version: 0.1.1
+appVersion: v2.5.9-stable

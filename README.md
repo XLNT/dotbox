@@ -1,0 +1,6 @@
+# dotbox
+
+
+## Installation
+
+- `. ./env.sh`

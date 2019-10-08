@@ -1,0 +1,3 @@
+persistence:
+  storageClass: local-path
+  size: 1Gi

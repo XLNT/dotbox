@@ -1,0 +1,76 @@
+apiVersion: apps/v1beta2
+kind: Deployment
+metadata:
+  name: {{ template "ethereum-light.fullname" . }}
+  labels:
+{{ include "ethereum-light.labels" . | indent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "ethereum-light.name" . }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "ethereum-light.name" . }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+    spec:
+      containers:
+        - name: {{ .Chart.Name }}
+          image: "{{ .Values.image.repository }}:{{ .Chart.AppVersion }}"
+          args:
+            - "--chain=ethereum"
+            - "--light"
+            - "--no-hardware-wallets"
+            - "--no-secretstore"
+            - "--no-secretstore-http"
+            - "--no-ipc"
+            - "--jsonrpc-apis=safe"
+            - "--jsonrpc-hosts=all"
+            - "--ws-apis=safe"
+            - "--ws-hosts=all"
+            - "--base-path=/home/parity/.local/share/io.parity.ethereum"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          volumeMounts:
+            - name: data
+              mountPath: /home/parity/.local/share/io.parity.ethereum/
+          ports:
+            - name: httprpc
+              containerPort: 8545
+              protocol: TCP
+            - name: wsrpc
+              containerPort: 8546
+              protocol: TCP
+            - name: listen
+              containerPort: 30303
+              protocol: TCP
+            - name: discovery
+              containerPort: 30303
+              protocol: UDP
+          # livenessProbe:
+          #   httpGet:
+          #     path: /
+          #     port: http
+          # readinessProbe:
+          #   httpGet:
+          #     path: /
+          #     port: http
+          resources:
+{{ toYaml .Values.resources | indent 12 }}
+    {{- with .Values.nodeSelector }}
+      nodeSelector:
+{{ toYaml . | indent 8 }}
+    {{- end }}
+    {{- with .Values.affinity }}
+      affinity:
+{{ toYaml . | indent 8 }}
+    {{- end }}
+    {{- with .Values.tolerations }}
+      tolerations:
+{{ toYaml . | indent 8 }}
+    {{- end }}
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: {{ template "ethereum-light.fullname" . }}
