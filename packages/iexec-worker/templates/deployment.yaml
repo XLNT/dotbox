@@ -1,0 +1,80 @@
+apiVersion: apps/v1beta2
+kind: Deployment
+metadata:
+  name: {{ template "iexec-worker.fullname" . }}
+  labels:
+{{ include "iexec-worker.labels" . | indent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "iexec-worker.name" . }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "iexec-worker.name" . }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+    spec:
+      containers:
+        - name: dind
+          image: docker:stable-dind
+          imagePullPolicy: IfNotPresent
+          volumeMounts:
+            - name: docker-socket-volume
+              mountPath: /var/run
+          securityContext:
+            privileged: true
+        - name: worker
+          image: "{{ .Values.image.repository }}:{{ .Chart.AppVersion }}"
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: IEXEC_WORKER_NAME
+              value: shrugs-clay-test
+            - name: IEXEC_CORE_PROTOCOL
+              value: https
+            - name: IEXEC_CORE_HOST
+              value: kovan-pool.iex.ec
+            - name: IEXEC_CORE_PORT
+              value: "18443"
+            - name: IEXEC_WORKER_BASE_DIR
+              value: /tmp/iexec-worker
+            - name: IEXEC_WORKER_WALLET_PATH
+              value: /iexec-wallet/wallet.json
+            - name: IEXEC_WORKER_WALLET_PASSWORD
+              value: password
+            - name: IEXEC_WORKER_SSL_TRUSTSTORE
+              value: /usr/lib/jvm/zulu-11/lib/security/cacerts
+            - name: IEXEC_WORKER_SSL_TRUSTSTORE_PASSWORD
+              value: changeit
+          volumeMounts:
+            - name: iexec-worker
+              mountPath: /tmp/iexec-worker
+            - name: iexec-wallet
+              mountPath: /iexec-wallet/wallet.json
+              subPath: wallet.json
+            - name: docker-socket-volume
+              mountPath: /var/run
+          resources:
+{{ toYaml .Values.resources | indent 12 }}
+    {{- with .Values.nodeSelector }}
+      nodeSelector:
+{{ toYaml . | indent 8 }}
+    {{- end }}
+    {{- with .Values.affinity }}
+      affinity:
+{{ toYaml . | indent 8 }}
+    {{- end }}
+    {{- with .Values.tolerations }}
+      tolerations:
+{{ toYaml . | indent 8 }}
+    {{- end }}
+      volumes:
+        - name: iexec-worker
+          persistentVolumeClaim:
+            claimName: {{ template "iexec-worker.fullname" . }}
+        - name: iexec-wallet
+          configMap:
+            name: {{ template "iexec-worker.fullname" . }}
+        - name: docker-socket-volume
+          emptyDir: {}

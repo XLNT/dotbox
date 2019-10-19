@@ -1,0 +1,6 @@
+apiVersion: v2
+name: iexec-worker
+description: iExec Worker Node
+type: application
+version: 0.0.1
+appVersion: 3.2.0
